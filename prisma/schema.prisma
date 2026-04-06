@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+enum Role {
+  TEACHER
+  STUDENT
+  PARENT
+}
+
+enum Subject {
+  SCIENCE
+  MATH
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String
+  name              String
+  role              Role
+  linkedStudentId   String?
+  linkedStudent     User?     @relation("ParentStudent", fields: [linkedStudentId], references: [id])
+  parents           User[]    @relation("ParentStudent")
+  progress          Progress[]
+  portfolio         PortfolioItem[]
+  userBadges        UserBadge[]
+  notifications     Notification[]
+  forumPosts        ForumPost[]
+  sentMessages      Message[] @relation("MessageFrom")
+  receivedMessages  Message[] @relation("MessageTo")
+  createdLessons    Lesson[]  @relation("LessonAuthor")
+}
+
+model Lesson {
+  id            String     @id @default(cuid())
+  title         String
+  subject       Subject
+  description   String?
+  sequenceOrder Int        @default(0)
+  courseHtml    String?
+  authorId      String?
+  author        User?      @relation("LessonAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime   @default(now())
+  progress      Progress[]
+  threads       ForumThread[]
+}
+
+model Progress {
+  id              String   @id @default(cuid())
+  userId          String
+  lessonId        String
+  coursDone       Boolean  @default(false)
+  exercicesDone   Boolean  @default(false)
+  evaluationDone  Boolean  @default(false)
+  evaluationScore Int?
+  difficultyFlag  Boolean  @default(false)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson          Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, lessonId])
+}
+
+model PortfolioItem {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  kind        String
+  description String?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+model BadgeDefinition {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  description String
+  userBadges  UserBadge[]
+}
+
+model UserBadge {
+  id        String          @id @default(cuid())
+  userId    String
+  badgeId   String
+  earnedAt  DateTime        @default(now())
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     BadgeDefinition @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, badgeId])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ForumThread {
+  id        String      @id @default(cuid())
+  lessonId  String?
+  title     String
+  lesson    Lesson?     @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  posts     ForumPost[]
+  createdAt DateTime    @default(now())
+}
+
+model ForumPost {
+  id        String      @id @default(cuid())
+  threadId  String
+  userId    String
+  body      String
+  createdAt DateTime    @default(now())
+  thread    ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  body       String
+  createdAt  DateTime @default(now())
+  fromUser   User     @relation("MessageFrom", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser     User     @relation("MessageTo", fields: [toUserId], references: [id], onDelete: Cascade)
+}
