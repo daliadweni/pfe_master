@@ -11,19 +11,31 @@ export async function GET(req: Request) {
 
   const { searchParams } = new URL(req.url);
   const subject = searchParams.get("subject") as Subject | null;
+  const search = searchParams.get("search")?.trim();
+
+  const where: Record<string, unknown> = {};
+  if (subject) where.subject = subject;
+  if (search) {
+    where.OR = [
+      { title: { contains: search } },
+      { description: { contains: search } },
+    ];
+  }
 
   const lessons = await prisma.lesson.findMany({
-    where: subject ? { subject } : undefined,
+    where: Object.keys(where).length > 0 ? where : undefined,
     orderBy: [{ subject: "asc" }, { sequenceOrder: "asc" }],
-    include:
-      session.role === "STUDENT"
+    include: {
+      ...(session.role === "STUDENT"
         ? {
             progress: {
               where: { userId: session.sub },
               take: 1,
             },
           }
-        : undefined,
+        : {}),
+      _count: { select: { exams: true } },
+    },
   });
 
   return NextResponse.json({ lessons });
@@ -40,16 +52,23 @@ export async function POST(req: Request) {
     subject?: Subject;
     description?: string;
     courseHtml?: string;
+    videoUrl?: string;
     sequenceOrder?: number;
   };
   try {
     body = await req.json();
   } catch {
-    return NextResponse.json({ error: "بيانات غير صالحة" }, { status: 400 });
+    return NextResponse.json(
+      { error: "بيانات غير صالحة" },
+      { status: 400 },
+    );
   }
 
   if (!body.title?.trim() || !body.subject) {
-    return NextResponse.json({ error: "العنوان والمادة مطلوبان" }, { status: 400 });
+    return NextResponse.json(
+      { error: "العنوان والمادة مطلوبان" },
+      { status: 400 },
+    );
   }
 
   const lesson = await prisma.lesson.create({
@@ -58,6 +77,7 @@ export async function POST(req: Request) {
       subject: body.subject,
       description: body.description?.trim() || null,
       courseHtml: body.courseHtml?.trim() || null,
+      videoUrl: body.videoUrl?.trim() || null,
       sequenceOrder: body.sequenceOrder ?? 0,
       authorId: session.sub,
     },

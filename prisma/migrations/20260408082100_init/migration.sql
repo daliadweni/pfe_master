@@ -17,9 +17,37 @@ CREATE TABLE "Lesson" (
     "description" TEXT,
     "sequenceOrder" INTEGER NOT NULL DEFAULT 0,
     "courseHtml" TEXT,
+    "videoUrl" TEXT,
     "authorId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT "Lesson_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Exam" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "subject" TEXT NOT NULL,
+    "lessonId" TEXT,
+    "authorId" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Exam_lessonId_fkey" FOREIGN KEY ("lessonId") REFERENCES "Lesson" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "Exam_authorId_fkey" FOREIGN KEY ("authorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "Question" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "examId" TEXT NOT NULL,
+    "type" TEXT NOT NULL,
+    "questionText" TEXT NOT NULL,
+    "options" TEXT,
+    "correctAnswer" TEXT NOT NULL,
+    "explanation" TEXT,
+    "hint" TEXT,
+    "displayOrder" INTEGER NOT NULL DEFAULT 0,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "Question_examId_fkey" FOREIGN KEY ("examId") REFERENCES "Exam" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable

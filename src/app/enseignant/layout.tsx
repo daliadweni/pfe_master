@@ -39,10 +39,22 @@ export default async function EnseignantLayout({
               الدروس
             </Link>
             <Link
+              href="/enseignant/questions"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              الاختبارات
+            </Link>
+            <Link
               href="/enseignant/suivi"
               className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               المتابعة
+            </Link>
+            <Link
+              href="/enseignant/messages"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              الرسائل
             </Link>
             <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
             <ThemeToggle />

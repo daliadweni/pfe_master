@@ -2,74 +2,33 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
-export async function GET() {
+export async function GET(req: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
   }
 
-  if (session.role === "PARENT") {
-    const parent = await prisma.user.findUnique({
-      where: { id: session.sub },
-      select: { linkedStudentId: true },
-    });
-    if (!parent?.linkedStudentId) {
-      return NextResponse.json({ messages: [] });
-    }
+  const { searchParams } = new URL(req.url);
+  const contactId = searchParams.get("contactId");
 
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          { fromUserId: session.sub, toUserId: parent.linkedStudentId },
-          { fromUserId: parent.linkedStudentId, toUserId: session.sub },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-      include: {
-        fromUser: { select: { name: true, role: true } },
-      },
-    });
-
-    return NextResponse.json({ messages });
+  if (!contactId) {
+    return NextResponse.json({ error: "حدد جهة الاتصال" }, { status: 400 });
   }
 
-  if (session.role === "STUDENT") {
-    const parents = await prisma.user.findMany({
-      where: { linkedStudentId: session.sub },
-      select: { id: true },
-    });
-    const parentIds = parents.map((p) => p.id);
-    if (parentIds.length === 0) {
-      return NextResponse.json({ messages: [] });
-    }
+  const messages = await prisma.message.findMany({
+    where: {
+      OR: [
+        { fromUserId: session.sub, toUserId: contactId },
+        { fromUserId: contactId, toUserId: session.sub },
+      ],
+    },
+    orderBy: { createdAt: "asc" },
+    include: {
+      fromUser: { select: { name: true, role: true } },
+    },
+  });
 
-    const messages = await prisma.message.findMany({
-      where: {
-        OR: [
-          {
-            AND: [
-              { fromUserId: session.sub },
-              { toUserId: { in: parentIds } },
-            ],
-          },
-          {
-            AND: [
-              { toUserId: session.sub },
-              { fromUserId: { in: parentIds } },
-            ],
-          },
-        ],
-      },
-      orderBy: { createdAt: "asc" },
-      include: {
-        fromUser: { select: { name: true, role: true } },
-      },
-    });
-
-    return NextResponse.json({ messages });
-  }
-
-  return NextResponse.json({ error: "ممنوع" }, { status: 403 });
+  return NextResponse.json({ messages });
 }
 
 export async function POST(req: Request) {
@@ -78,7 +37,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "غير مصرّح" }, { status: 401 });
   }
 
-  let body: { body?: string };
+  let body: { toUserId?: string; body?: string };
   try {
     body = await req.json();
   } catch {
@@ -88,61 +47,51 @@ export async function POST(req: Request) {
   if (!body.body?.trim()) {
     return NextResponse.json({ error: "الرسالة فارغة" }, { status: 400 });
   }
-
-  if (session.role === "PARENT") {
-    const parent = await prisma.user.findUnique({
-      where: { id: session.sub },
-      select: { linkedStudentId: true },
-    });
-    if (!parent?.linkedStudentId) {
-      return NextResponse.json({ error: "لا يوجد تلميذ مرتبط" }, { status: 400 });
-    }
-
-    const message = await prisma.message.create({
-      data: {
-        fromUserId: session.sub,
-        toUserId: parent.linkedStudentId,
-        body: body.body.trim(),
-      },
-    });
-
-    await prisma.notification.create({
-      data: {
-        userId: parent.linkedStudentId,
-        title: "رسالة من أحد الأقارب",
-        body: "تلقّيتَ رسالة تشجيع أو تعليقًا.",
-      },
-    });
-
-    return NextResponse.json({ message });
+  if (!body.toUserId) {
+    return NextResponse.json({ error: "حدد المستلم" }, { status: 400 });
   }
 
-  if (session.role === "STUDENT") {
-    const parent = await prisma.user.findFirst({
-      where: { linkedStudentId: session.sub },
-    });
-    if (!parent) {
-      return NextResponse.json({ error: "لا يوجد ولي أمر مرتبط" }, { status: 400 });
-    }
-
-    const message = await prisma.message.create({
-      data: {
-        fromUserId: session.sub,
-        toUserId: parent.id,
-        body: body.body.trim(),
-      },
-    });
-
-    await prisma.notification.create({
-      data: {
-        userId: parent.id,
-        title: "رسالة من التلميذ",
-        body: `${session.name} كتب إليك.`,
-      },
-    });
-
-    return NextResponse.json({ message });
+  const sender = await prisma.user.findUnique({
+    where: { id: session.sub },
+    select: { id: true },
+  });
+  if (!sender) {
+    return NextResponse.json(
+      { error: "جلسة غير صالحة — أعد تسجيل الدخول" },
+      { status: 401 }
+    );
   }
 
-  return NextResponse.json({ error: "ممنوع" }, { status: 403 });
+  const recipient = await prisma.user.findUnique({
+    where: { id: body.toUserId },
+    select: { id: true, name: true },
+  });
+  if (!recipient) {
+    return NextResponse.json({ error: "المستلم غير موجود" }, { status: 404 });
+  }
+
+  const message = await prisma.message.create({
+    data: {
+      fromUserId: session.sub,
+      toUserId: body.toUserId,
+      body: body.body.trim(),
+    },
+  });
+
+  const roleLabel =
+    session.role === "TEACHER"
+      ? "المعلّم"
+      : session.role === "STUDENT"
+        ? "التلميذ"
+        : "ولي الأمر";
+
+  await prisma.notification.create({
+    data: {
+      userId: body.toUserId,
+      title: `رسالة من ${roleLabel}`,
+      body: `${session.name} أرسل إليك رسالة.`,
+    },
+  });
+
+  return NextResponse.json({ message });
 }

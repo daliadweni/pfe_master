@@ -22,6 +22,12 @@ export default async function LeconPage({ params }: PageProps) {
         },
         orderBy: { createdAt: "desc" },
       },
+      exams: {
+        include: {
+          questions: { orderBy: [{ displayOrder: "asc" }, { createdAt: "asc" }] },
+        },
+        orderBy: { createdAt: "asc" },
+      },
       progress: { where: { userId: session!.sub }, take: 1 },
     },
   });
@@ -42,6 +48,20 @@ export default async function LeconPage({ params }: PageProps) {
       body: p.body,
       createdAt: p.createdAt.toISOString(),
       user: { name: p.user.name },
+    })),
+  }));
+
+  const dbExams = lesson.exams.map((ex) => ({
+    id: ex.id,
+    title: ex.title,
+    questions: ex.questions.map((q) => ({
+      id: q.id,
+      type: q.type,
+      questionText: q.questionText,
+      options: q.options,
+      correctAnswer: q.correctAnswer,
+      explanation: q.explanation,
+      hint: q.hint,
     })),
   }));
 
@@ -88,6 +108,11 @@ export default async function LeconPage({ params }: PageProps) {
         {lesson.description && (
           <p className="mt-2 max-w-2xl text-sm opacity-90">{lesson.description}</p>
         )}
+        {lesson.videoUrl && (
+          <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-0.5 text-[10px] font-bold">
+            🎥 يحتوي فيديو
+          </span>
+        )}
         {/* Mini progress */}
         <div className="mt-4 flex items-center gap-3">
           <div className="flex gap-1.5">
@@ -129,10 +154,12 @@ export default async function LeconPage({ params }: PageProps) {
             lessonTitle={lesson.title}
             subject={lesson.subject}
             courseHtml={lesson.courseHtml}
+            videoUrl={lesson.videoUrl}
             description={lesson.description}
             threads={threads}
             initialProgress={initialProgress}
             accentClass={accent}
+            dbExams={dbExams}
           />
         </div>
       </div>

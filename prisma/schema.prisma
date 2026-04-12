@@ -18,6 +18,15 @@ enum Subject {
   MATH
 }
 
+enum QuestionType {
+  MCQ
+  CHECKBOX
+  TRUE_FALSE
+  FILL
+  ORDER
+  MATCH
+}
+
 model User {
   id                String    @id @default(cuid())
   email             String    @unique
@@ -35,6 +44,7 @@ model User {
   sentMessages      Message[] @relation("MessageFrom")
   receivedMessages  Message[] @relation("MessageTo")
   createdLessons    Lesson[]  @relation("LessonAuthor")
+  createdExams      Exam[]    @relation("ExamAuthor")
 }
 
 model Lesson {
@@ -43,12 +53,40 @@ model Lesson {
   subject       Subject
   description   String?
   sequenceOrder Int        @default(0)
-  courseHtml    String?
+  courseHtml     String?
+  videoUrl      String?
   authorId      String?
   author        User?      @relation("LessonAuthor", fields: [authorId], references: [id])
   createdAt     DateTime   @default(now())
   progress      Progress[]
   threads       ForumThread[]
+  exams         Exam[]
+}
+
+model Exam {
+  id            String     @id @default(cuid())
+  title         String
+  subject       Subject
+  lessonId      String?
+  lesson        Lesson?    @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+  authorId      String?
+  author        User?      @relation("ExamAuthor", fields: [authorId], references: [id])
+  createdAt     DateTime   @default(now())
+  questions     Question[]
+}
+
+model Question {
+  id            String       @id @default(cuid())
+  examId        String
+  exam          Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
+  type          QuestionType
+  questionText  String
+  options       String?
+  correctAnswer String
+  explanation   String?
+  hint          String?
+  displayOrder  Int          @default(0)
+  createdAt     DateTime     @default(now())
 }
 
 model Progress {

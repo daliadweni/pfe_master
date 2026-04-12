@@ -1,7 +1,87 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+
+const TOOLBAR_ACTIONS = [
+  { cmd: "bold", icon: "𝐁", title: "غامق" },
+  { cmd: "italic", icon: "𝐼", title: "مائل" },
+  { cmd: "underline", icon: "U̲", title: "تسطير" },
+  { cmd: "insertUnorderedList", icon: "•", title: "قائمة نقطية" },
+  { cmd: "insertOrderedList", icon: "1.", title: "قائمة مرقمة" },
+] as const;
+
+function RichTextEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (html: string) => void;
+}) {
+  const editorRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && !node.innerHTML && value) {
+        node.innerHTML = value;
+      }
+    },
+    [value],
+  );
+
+  function execCmd(cmd: string) {
+    document.execCommand(cmd, false);
+  }
+
+  return (
+    <div className="mt-1.5 overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-800">
+      <div className="flex flex-wrap gap-1 border-b border-zinc-100 bg-zinc-50 px-3 py-2 dark:border-zinc-700 dark:bg-zinc-800/80">
+        {TOOLBAR_ACTIONS.map((a) => (
+          <button
+            key={a.cmd}
+            type="button"
+            title={a.title}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              execCmd(a.cmd);
+            }}
+            className="rounded-lg px-2.5 py-1 text-sm font-bold text-zinc-600 transition hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
+          >
+            {a.icon}
+          </button>
+        ))}
+        <div className="mx-1 h-6 w-px bg-zinc-200 dark:bg-zinc-700" />
+        <button
+          type="button"
+          title="عنوان"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            document.execCommand("formatBlock", false, "h3");
+          }}
+          className="rounded-lg px-2.5 py-1 text-sm font-bold text-zinc-600 transition hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
+        >
+          H
+        </button>
+        <button
+          type="button"
+          title="فقرة"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            document.execCommand("formatBlock", false, "p");
+          }}
+          className="rounded-lg px-2.5 py-1 text-sm text-zinc-600 transition hover:bg-zinc-200 dark:text-zinc-300 dark:hover:bg-zinc-700"
+        >
+          ¶
+        </button>
+      </div>
+      <div
+        ref={editorRef}
+        contentEditable
+        dir="rtl"
+        onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
+        className="prose prose-sm prose-zinc min-h-[120px] max-w-none p-4 text-sm focus:outline-none dark:prose-invert dark:text-zinc-100"
+      />
+    </div>
+  );
+}
 
 export function NewLessonForm() {
   const router = useRouter();
@@ -9,10 +89,12 @@ export function NewLessonForm() {
   const [subject, setSubject] = useState<"SCIENCE" | "MATH">("SCIENCE");
   const [description, setDescription] = useState("");
   const [courseHtml, setCourseHtml] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [sequenceOrder, setSequenceOrder] = useState(0);
   const [msg, setMsg] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [previewHtml, setPreviewHtml] = useState(false);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -27,6 +109,7 @@ export function NewLessonForm() {
           subject,
           description,
           courseHtml,
+          videoUrl,
           sequenceOrder,
         }),
       });
@@ -38,6 +121,7 @@ export function NewLessonForm() {
       setTitle("");
       setDescription("");
       setCourseHtml("");
+      setVideoUrl("");
       setMsg("تم إنشاء الدرس.");
       router.refresh();
     } finally {
@@ -116,22 +200,62 @@ export function NewLessonForm() {
                 className={inputCls}
               />
             </div>
+
+            {/* Video URL */}
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
-                محتوى الدرس (HTML بسيط)
+                🎥 رابط الفيديو (يوتيوب أو رابط مباشر — اختياري)
               </label>
-              <textarea
-                value={courseHtml}
-                onChange={(e) => setCourseHtml(e.target.value)}
-                rows={4}
-                className={`${inputCls} font-mono`}
-                placeholder="<p>نص، قوائم…</p>"
+              <input
+                type="url"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className={inputCls}
                 dir="ltr"
+                placeholder="https://www.youtube.com/watch?v=..."
               />
+              {videoUrl && (
+                <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                  ✓ سيظهر الفيديو في صفحة الدرس
+                </p>
+              )}
+            </div>
+
+            {/* Rich Text Editor */}
+            <div className="sm:col-span-2">
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-medium text-zinc-700 dark:text-zinc-300">
+                  محتوى الدرس
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setPreviewHtml(!previewHtml)}
+                  className="rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-medium text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400"
+                >
+                  {previewHtml ? "محرر مرئي" : "عرض HTML"}
+                </button>
+              </div>
+              {previewHtml ? (
+                <textarea
+                  value={courseHtml}
+                  onChange={(e) => setCourseHtml(e.target.value)}
+                  rows={6}
+                  className={`${inputCls} font-mono text-xs`}
+                  dir="ltr"
+                />
+              ) : (
+                <RichTextEditor value={courseHtml} onChange={setCourseHtml} />
+              )}
             </div>
           </div>
           {msg && (
-            <div className="animate-scale-in rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+            <div
+              className={`animate-scale-in rounded-xl border p-3 text-sm ${
+                msg.includes("خطأ")
+                  ? "border-red-200 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/30 dark:text-red-300"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200"
+              }`}
+            >
               {msg}
             </div>
           )}
