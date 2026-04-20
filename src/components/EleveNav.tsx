@@ -26,7 +26,11 @@ const links = [
       "bg-indigo-100 text-indigo-900 dark:bg-indigo-900/50 dark:text-indigo-100",
   },
   { href: "/eleve/laboratoire-ouvert", label: "مختبر مفتوح" },
-  { href: "/eleve/portfolio", label: "معرض الأعمال" },
+  { href: "/eleve/classes-virtuelles", label: "الحصص الحيّة" },
+  { href: "/eleve/rendez-vous", label: "المواعيد" },
+  { href: "/eleve/portfolio", label: "أعمالي" },
+  { href: "/eleve/galerie", label: "المتحف" },
+  { href: "/eleve/appairage", label: "ربط وليّ الأمر" },
   { href: "/eleve/messages", label: "الرسائل" },
 ];
 

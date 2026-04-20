@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import path from "path";
+import { randomBytes } from "crypto";
+import { mkdir, writeFile } from "fs/promises";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
@@ -38,7 +41,47 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "ممنوع" }, { status: 403 });
   }
 
-  let body: { title?: string; kind?: string; description?: string };
+  const contentType = req.headers.get("content-type") ?? "";
+
+  if (contentType.includes("multipart/form-data")) {
+    const form = await req.formData();
+    const title = String(form.get("title") ?? "").trim();
+    const kind = String(form.get("kind") ?? "").trim() || "AUTRE";
+    const description = String(form.get("description") ?? "").trim();
+    const isPublicRaw = form.get("isPublic");
+    const isPublic = isPublicRaw === null ? true : String(isPublicRaw) === "true";
+    const file = form.get("file");
+
+    if (!title) {
+      return NextResponse.json({ error: "العنوان مطلوب" }, { status: 400 });
+    }
+
+    let fileUrl: string | null = null;
+    if (file instanceof File && file.size > 0) {
+      const ext = path.extname(file.name) || "";
+      const base = randomBytes(8).toString("hex");
+      const filename = `${base}${ext}`;
+      const uploadDir = path.join(process.cwd(), "public", "uploads", "portfolio", session.sub);
+      await mkdir(uploadDir, { recursive: true });
+      const buf = Buffer.from(await file.arrayBuffer());
+      await writeFile(path.join(uploadDir, filename), buf);
+      fileUrl = `/uploads/portfolio/${session.sub}/${filename}`;
+    }
+
+    const item = await prisma.portfolioItem.create({
+      data: {
+        userId: session.sub,
+        title,
+        kind,
+        description: description || null,
+        fileUrl,
+        isPublic,
+      },
+    });
+    return NextResponse.json({ item });
+  }
+
+  let body: { title?: string; kind?: string; description?: string; fileUrl?: string; isPublic?: boolean };
   try {
     body = await req.json();
   } catch {
@@ -55,6 +98,8 @@ export async function POST(req: Request) {
       title: body.title.trim(),
       kind: body.kind.trim(),
       description: body.description?.trim() || null,
+      fileUrl: body.fileUrl?.trim() || null,
+      isPublic: body.isPublic ?? true,
     },
   });
 

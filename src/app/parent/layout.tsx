@@ -33,6 +33,18 @@ export default async function ParentLayout({
               النتائج
             </Link>
             <Link
+              href="/parent/activite"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              النشاط المباشر
+            </Link>
+            <Link
+              href="/parent/rendez-vous"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              المواعيد
+            </Link>
+            <Link
               href="/parent/messages"
               className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
@@ -43,6 +55,12 @@ export default async function ParentLayout({
               className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >
               المعرض
+            </Link>
+            <Link
+              href="/parent/appairage"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              الربط
             </Link>
             <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
             <ThemeToggle />

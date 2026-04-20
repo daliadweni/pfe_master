@@ -51,6 +51,18 @@ export default async function EnseignantLayout({
               المتابعة
             </Link>
             <Link
+              href="/enseignant/classes-virtuelles"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              الحصص الحيّة
+            </Link>
+            <Link
+              href="/enseignant/rendez-vous"
+              className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
+            >
+              المواعيد
+            </Link>
+            <Link
               href="/enseignant/messages"
               className="rounded-lg px-3 py-1.5 font-medium text-zinc-600 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white"
             >

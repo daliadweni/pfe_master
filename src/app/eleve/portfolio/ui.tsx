@@ -1,24 +1,30 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Item = {
   id: string;
   title: string;
   kind: string;
   description: string | null;
+  fileUrl: string | null;
+  isPublic: boolean;
   createdAt: string;
 };
 
 const kindLabel: Record<string, string> = {
   SCHEMA: "مخطط",
   AUDIO: "صوت",
+  IMAGE: "صورة",
+  VIDEO: "فيديو",
   AUTRE: "أخرى",
 };
 
 const kindIcon: Record<string, string> = {
   SCHEMA: "📐",
   AUDIO: "🎙️",
+  IMAGE: "🖼️",
+  VIDEO: "🎞️",
   AUTRE: "📎",
 };
 
@@ -27,8 +33,11 @@ export function PortfolioClient() {
   const [title, setTitle] = useState("");
   const [kind, setKind] = useState("SCHEMA");
   const [description, setDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
   const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     const res = await fetch("/api/portfolio");
@@ -45,16 +54,27 @@ export function PortfolioClient() {
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    const res = await fetch("/api/portfolio", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title, kind, description }),
-    });
-    if (res.ok) {
-      setTitle("");
-      setDescription("");
-      setShowForm(false);
-      void load();
+    setBusy(true);
+    try {
+      const form = new FormData();
+      form.append("title", title);
+      form.append("kind", kind);
+      form.append("description", description);
+      form.append("isPublic", String(isPublic));
+      const file = fileRef.current?.files?.[0];
+      if (file) form.append("file", file);
+
+      const res = await fetch("/api/portfolio", { method: "POST", body: form });
+      if (res.ok) {
+        setTitle("");
+        setDescription("");
+        setIsPublic(true);
+        if (fileRef.current) fileRef.current.value = "";
+        setShowForm(false);
+        void load();
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -72,7 +92,6 @@ export function PortfolioClient() {
 
   return (
     <div className="space-y-6">
-      {/* Add button / form */}
       {!showForm ? (
         <button
           type="button"
@@ -96,9 +115,20 @@ export function PortfolioClient() {
               <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">النوع</label>
               <select value={kind} onChange={(e) => setKind(e.target.value)} className={inputCls}>
                 <option value="SCHEMA">مخطط</option>
+                <option value="IMAGE">صورة</option>
                 <option value="AUDIO">تسجيل صوتي</option>
+                <option value="VIDEO">فيديو</option>
                 <option value="AUTRE">أخرى</option>
               </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">ملف (اختياري)</label>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*,audio/*,video/*,.pdf"
+                className="mt-1.5 w-full rounded-xl border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-800"
+              />
             </div>
             <div className="sm:col-span-2">
               <label className="text-sm font-medium text-zinc-600 dark:text-zinc-400">الوصف</label>
@@ -109,13 +139,18 @@ export function PortfolioClient() {
                 className={inputCls}
               />
             </div>
+            <label className="flex items-center gap-2 text-sm text-zinc-700 sm:col-span-2 dark:text-zinc-300">
+              <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
+              مشاركة في المعرض العمومي (المتحف الافتراضي)
+            </label>
           </div>
           <div className="mt-4 flex gap-2">
             <button
               type="submit"
-              className="rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-500/25 transition hover:shadow-xl"
+              disabled={busy}
+              className="rounded-xl bg-gradient-to-l from-teal-600 to-teal-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-teal-500/25 transition hover:shadow-xl disabled:opacity-60"
             >
-              إضافة إلى المعرض
+              {busy ? "جاري الإضافة…" : "إضافة إلى المعرض"}
             </button>
             <button
               type="button"
@@ -128,18 +163,24 @@ export function PortfolioClient() {
         </form>
       )}
 
-      {/* Items grid */}
       <div className="grid gap-4 sm:grid-cols-2">
         {items.map((it, idx) => (
           <article
             key={it.id}
             className={`animate-fade-in-up stagger-${Math.min(idx + 1, 4)} group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900`}
           >
-            <div className="flex items-center gap-2">
-              <span className="text-lg">{kindIcon[it.kind] ?? "📎"}</span>
-              <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
-                {kindLabel[it.kind] ?? it.kind}
-              </span>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">{kindIcon[it.kind] ?? "📎"}</span>
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">
+                  {kindLabel[it.kind] ?? it.kind}
+                </span>
+              </div>
+              {it.isPublic ? (
+                <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300">عمومي</span>
+              ) : (
+                <span className="rounded-md bg-zinc-100 px-2 py-0.5 text-[10px] font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">خاص</span>
+              )}
             </div>
             <h3 className="mt-3 font-bold text-zinc-800 dark:text-zinc-100">
               {it.title}
@@ -148,6 +189,21 @@ export function PortfolioClient() {
               <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
                 {it.description}
               </p>
+            )}
+            {it.fileUrl && (
+              <div className="mt-3">
+                {it.kind === "IMAGE" ? (
+                  <img src={it.fileUrl} alt={it.title} className="max-h-48 rounded-lg object-cover" />
+                ) : it.kind === "AUDIO" ? (
+                  <audio controls src={it.fileUrl} className="w-full" />
+                ) : it.kind === "VIDEO" ? (
+                  <video controls src={it.fileUrl} className="max-h-48 w-full rounded-lg" />
+                ) : (
+                  <a href={it.fileUrl} target="_blank" rel="noreferrer" className="text-xs font-medium text-teal-700 hover:underline dark:text-teal-300">
+                    فتح الملف
+                  </a>
+                )}
+              </div>
             )}
           </article>
         ))}

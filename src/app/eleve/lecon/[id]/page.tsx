@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LessonFourPillars } from "@/components/LessonFourPillars";
+import { LessonExtras } from "@/components/LessonExtras";
 import { prisma } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
@@ -163,6 +164,8 @@ export default async function LeconPage({ params }: PageProps) {
           />
         </div>
       </div>
+
+      <LessonExtras lessonId={lesson.id} me={{ id: session!.sub, role: session!.role }} />
     </div>
   );
 }

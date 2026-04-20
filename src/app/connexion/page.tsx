@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -187,6 +188,14 @@ export default function ConnexionPage() {
                 {loading ? "جاري الدخول…" : "دخول"}
               </span>
             </button>
+            <div className="text-center">
+              <Link
+                href="/mot-de-passe-oublie"
+                className="text-xs font-medium text-zinc-500 transition hover:text-indigo-600 dark:text-zinc-400 dark:hover:text-indigo-400"
+              >
+                نسيت كلمة المرور؟
+              </Link>
+            </div>
           </form>
         </div>
 

@@ -78,6 +78,12 @@ export default async function ParentAccueil() {
         <div className="flex flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-zinc-200 py-12 dark:border-zinc-700">
           <span className="text-4xl">👤</span>
           <p className="text-zinc-500">لا يوجد تلميذ مرتبط بهذا الحساب.</p>
+          <Link
+            href="/parent/appairage"
+            className="mt-2 rounded-xl bg-gradient-to-l from-rose-600 to-rose-700 px-5 py-2.5 text-sm font-bold text-white shadow-lg"
+          >
+            ربط حساب الطفل
+          </Link>
         </div>
       ) : (
         <>

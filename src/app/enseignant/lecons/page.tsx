@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { NewLessonForm } from "./ui";
 
@@ -25,7 +26,10 @@ export default async function LeconsPage() {
             key={l.id}
             className={`animate-fade-in-up stagger-${Math.min(idx + 1, 4)}`}
           >
-            <div className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+            <Link
+              href={`/enseignant/lecons/${l.id}`}
+              className="group flex items-center gap-4 rounded-2xl border border-zinc-200 bg-white px-5 py-4 shadow-sm transition-all hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+            >
               <div
                 className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${
                   l.subject === "SCIENCE"
@@ -41,7 +45,8 @@ export default async function LeconsPage() {
                   {l.subject === "SCIENCE" ? "🔬 الإيقاظ العلمي" : "🔢 الرياضيات"}
                 </p>
               </div>
-            </div>
+              <span className="text-xs text-zinc-400 group-hover:text-violet-600 dark:group-hover:text-violet-400">إدارة ←</span>
+            </Link>
           </li>
         ))}
       </ul>
